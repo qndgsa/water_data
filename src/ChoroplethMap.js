@@ -1,76 +1,128 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Plotly from 'plotly.js';
 import createPlotlyComponent from 'react-plotly.js/factory';
-import * as turf from '@turf/turf';
 
 const Plot = createPlotlyComponent(Plotly);
 
-// FIPS codes for California counties
-var ca_counties_fips = ['06001', '06003', '06005', '06007', '06009', '06011', '06013', '06015', '06017', '06019',
-    '06021', '06023', '06025', '06027', '06029', '06031', '06033', '06035', '06037', '06039',
-    '06041', '06043', '06045', '06047', '06049', '06051', '06053', '06055', '06057', '06059',
-    '06061', '06063', '06065', '06067', '06069', '06071', '06073', '06075', '06077', '06079',
-    '06081', '06083', '06085', '06087', '06089', '06091', '06093', '06095', '06097', '06099',
-    '06101', '06103', '06105', '06107', '06109', '06111', '06113', '06115'];
 
-const ChoroplethMap = () => {
-    const [data, setData] = React.useState([]);
-    const [layout, setLayout] = React.useState({});
+const ChoroplethMap = ({ lat, lon, shouldFocus }) => {
+    const [data, setData] = useState([]);
+    const [layout, setLayout] = useState({});
+
 
     useEffect(() => {
-        // Fetch the GeoJSON data and create the plot
         fetch('https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json')
-            .then((response) => response.json())
-            .then((geojson) => {
-                const caCounties = {
-                    ...geojson,
-                    features: geojson.features.filter((feature) => ca_counties_fips.includes(feature.id)),
-                };
+            .then(response => response.json())
+            .then(geojson => {
+                fetch('http://localhost:5000/all')
+                    .then((response) => response.json())
+                    .then((result) => {
+                        const citiesData = result.data;
 
-                const countyData = ca_counties_fips.map(() => Math.random());
+                        const latitudes = citiesData.map(loc => loc.Latitude);
+                        const longitudes = citiesData.map(loc => loc.Longitude);
+                        const cityNames = citiesData.map(loc => loc.City);
+                        const cityValues = citiesData.map(loc => loc.Hardness);
+                        const stateName = citiesData.map(loc => loc.State);
 
-                setData([
-                    {
-                        type: 'choropleth',
-                        geojson: caCounties,
-                        z: countyData,
-                        locations: ca_counties_fips,
-                    },
-                ]);
+                        const hoverTexts = cityNames.map((city, index) => `${stateName[index]} ${city}: ${cityValues[index]} PPM`);
 
-                setLayout({
-                    geo: {
-                        scope: 'usa',
-                        showcoastlines: true,
-                        projection: { type: 'albers usa' },
-                    },
-                });
+                        // Filling all blocks with a blue color
+                        const allFips = geojson.features.map(feature => feature.id);
+                        const dummyValues = Array(allFips.length).fill(0);
+
+                        const blocksPlot = {
+                            type: 'choropleth',
+                            geojson: geojson,
+                            z: dummyValues,
+                            locations: allFips,
+                            colorscale: [[0, '#79C5ED'], [1, '#79C5ED']],
+                            showscale: false
+                        };
+
+                        const scatterPlot = {
+                            type: 'scattergeo',
+                            mode: 'markers',
+                            lon: longitudes,
+                            lat: latitudes,
+                            hoverinfo: 'text',
+                            hovertext: hoverTexts,
+                            marker: {
+                                color: '#FFFF00',
+                                size: 10,
+                                opacity: 0.8,
+                            },
+                            name: 'City Location',
+                            customdata: hoverTexts,
+                        };
+
+                        setData([blocksPlot, scatterPlot]);
+
+                        setLayout({
+                            geo: {
+                                scope: 'usa',
+                                showcoastlines: true,
+                                projection: {
+                                    type: 'albers usa',
+                                    scale: 1,  // Increase this to zoom in
+                                },
+                            },
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Failed to fetch city data:', error);
+                    });
+            })
+            .catch(error => {
+                console.error('Failed to fetch geojson data:', error);
             });
-    }, []);
+        if (shouldFocus && lat && lon) {
+            console.log('Inside focus condition');  // Logging
 
-    const handleCountyClick = (eventData) => {
-        const { location } = eventData.points[0];
-
-
-        // Fetch the clicked county's coordinates
-        const clickedCounty = data[0].geojson.features.find((feature) => feature.id === location);
-
-        if (clickedCounty) {
-            const [lon, lat] = clickedCounty.geometry.coordinates[0][0];
-            // Update the layout with the new bounds
             setLayout({
                 geo: {
                     scope: 'usa',
                     showcoastlines: true,
-                    projection: { type: 'albers usa' },
-                    center: { lon, lat },
-                    scales: 2,
-                },
+                    projection: {
+                        type: 'albers usa',
+                        scale: 8,
+                        center: { lon, lat }
+                    }
+                }
             });
         }
+    }, [lat, lon, shouldFocus]);
+
+    const handlePointClick = (data) => {
+        const clickedPointIndex = data.points[0].pointIndex;
+        const clickedCityLabel = data.points[0].customdata;
+        const clickedLon = data.points[0].lon;
+        const clickedLat = data.points[0].lat;
+        console.log(clickedLon)
+        console.log(clickedLat)
+        // Update the data to show the label for the clicked point
+        setData(prevData => {
+            const updatedData = [...prevData];
+            updatedData[1].text = Array(updatedData[1].lon.length).fill(''); // Empty labels for all
+            updatedData[1].text[clickedPointIndex] = clickedCityLabel; // Set label only for the clicked point
+            return updatedData;
+        });
+
+        // Adjust the map's center and zoom based on the clicked point's location
+        setLayout(prevLayout => ({
+            ...prevLayout,
+            geo: {
+                ...prevLayout.geo,
+                projection: {
+                    ...prevLayout.geo.projection,
+                    scale: 10,  // Zoom level (adjust as needed)
+                    center: { lon: clickedLon, lat: clickedLat }
+                }
+            }
+        }));
     };
 
-    return <Plot data={data} layout={layout} onClick={handleCountyClick} />;
+    return <Plot data={data} layout={layout} onClick={handlePointClick} />;
 };
 
 export default ChoroplethMap;
