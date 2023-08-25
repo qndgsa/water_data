@@ -8,6 +8,7 @@ import axios from 'axios';
 
 
 const App = () => {
+    // State for the search term and other related variables
     const [searchTerm, setSearchTerm] = useState('');
     const [progress, setProgress] = useState(0);
     const [showProgress, setShowProgress] = useState(false);
@@ -22,18 +23,22 @@ const App = () => {
     const [lat, setLat] = useState('');
     const [error, setError] = useState(false);
 
+    // Function to handle changes in the search input
     const handleSearchChange = (event) => {
         setSearchTerm(event.target.value);
     };
 
+    // Function to handle the search submission
     const handleSearchSubmit = async () => {
         setError(false);
+        // Regex for validating the ZIP code format
         const zipRegex = /^\d{5}$/;
         if (!zipRegex.test(searchTerm)) {
             setError(true);
         } else {
+            // Start showing progress
             setShowProgress(true);
-            console.log(searchTerm);
+            // Incremental progress logic for visual feedback
             let currentProgress = 0;
             const interval = setInterval(() => {
                 currentProgress += 2; // Increment by 2% every 100ms to reach 100% in 5 seconds
@@ -50,6 +55,7 @@ const App = () => {
             console.log(searchTerm);
             setZip(searchTerm);
             try {
+                // Make an API call to get data based on the ZIP code
                 const response = await axios.get(`http://localhost:5000/search/${searchTerm}`);
                 console.log(response.data);
                 console.log(response.data.data);
@@ -71,13 +77,16 @@ const App = () => {
         };
     }
 
-
+    // Rendering the main application structure
     return (
         <div>
+            {/* Header section */}
             <h1 style={{display: 'flex', justifyContent: 'center', color: '#40ABE7'}}>Check your water quality</h1>
             <p className="lead" style={{display: 'flex', justifyContent: 'center'}}>Enter your zip code and see if you
                 live in a hard water area with out hardness tool. Lots of people lives in hard water areas without
                 knowing. How hard is you water?</p>
+
+            {/* Search bar section */}
             <div style={{width: '100%', display: 'flex', justifyContent: 'center', marginBottom: '10px'}}>
                 <input
                     id="input-box"
@@ -108,6 +117,8 @@ const App = () => {
                     Search
                 </button>
             </div>
+
+            {/* Progress bar section */}
             {showProgress && !error && (
                 <div style={{
                     border: '1px solid black',
@@ -120,6 +131,8 @@ const App = () => {
                     <div style={{width: `${progress}%`, height: '100%', backgroundColor: 'blue'}}/>
                 </div>
             )}
+
+            {/* Error message section */}
             {error && (
                 <>
                     <div className="jumbotron winter-neva-gradient"
@@ -129,6 +142,8 @@ const App = () => {
 
                 </>
             )}
+
+            {/* Results section after searching */}
             {progressFinished && !showProgress && !error && (
                 <>
                     <div className="jumbotron winter-neva-gradient"
@@ -150,7 +165,7 @@ const App = () => {
                 </>
             )}
 
-
+            {/* Map visualization section */}
             <div style={{width: '100%', display: 'flex', justifyContent: 'center', marginBottom: '10px'}}>
                 <ChoroplethMap
                     lat={lat}
@@ -161,6 +176,7 @@ const App = () => {
                 />
             </div>
 
+            {/* Disclaimer section */}
             <div className="jumbotron" style={{width: '60%', margin: '10px auto', textAlign: 'center'}}>
                 <span style={{color: "gray"}}>Disclaimer : The data in this handy tool comes to provide a general overview of water hardness is based on reports from USGS.gov .  APEC do not guarantee the water hardness figures are 100% accurate. To see more information and access real-time water data please visit https://www.usgs.gov/mission-areas/water-resources/data</span>
             </div>
@@ -169,4 +185,6 @@ const App = () => {
     );
 };
 export default App;
+
+// Rendering the main App component into the root DOM element
 ReactDOM.render(<App/>, document.getElementById('root'));

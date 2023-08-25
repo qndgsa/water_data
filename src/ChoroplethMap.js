@@ -2,44 +2,47 @@ import React, { useEffect, useState } from 'react';
 import Plotly from 'plotly.js';
 import createPlotlyComponent from 'react-plotly.js/factory';
 
+// Create a Plotly React component
 const Plot = createPlotlyComponent(Plotly);
 
-
 const ChoroplethMap = ({ lat, lon, shouldFocus }) => {
+    // State to store the data and layout for the map
     const [data, setData] = useState([]);
     const [layout, setLayout] = useState({});
 
-
+    // useEffect hook to fetch data and create the map when the component mounts or when lat, lon, or shouldFocus changes
     useEffect(() => {
+        // Fetch GeoJSON data for counties
         fetch('https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json')
             .then(response => response.json())
             .then(geojson => {
+                // Fetch city data from a local server
                 fetch('http://localhost:5000/all')
                     .then((response) => response.json())
                     .then((result) => {
                         const citiesData = result.data;
 
+                        // Extract data from citiesData
                         const latitudes = citiesData.map(loc => loc.Latitude);
                         const longitudes = citiesData.map(loc => loc.Longitude);
                         const cityNames = citiesData.map(loc => loc.City);
                         const cityValues = citiesData.map(loc => loc.Hardness);
                         const stateName = citiesData.map(loc => loc.State);
 
+                        // Create hover texts for each city
                         const hoverTexts = cityNames.map((city, index) => `${stateName[index]} ${city}: ${cityValues[index]} PPM`);
 
-                        // Filling all blocks with a blue color
-                        const allFips = geojson.features.map(feature => feature.id);
-                        const dummyValues = Array(allFips.length).fill(0);
-
+                        // Create a choropleth layer to color all counties blue
                         const blocksPlot = {
                             type: 'choropleth',
                             geojson: geojson,
-                            z: dummyValues,
-                            locations: allFips,
+                            z: Array(geojson.features.length).fill(0),
+                            locations: geojson.features.map(feature => feature.id),
                             colorscale: [[0, '#79C5ED'], [1, '#79C5ED']],
                             showscale: false
                         };
 
+                        // Create a scattergeo layer for city markers
                         const scatterPlot = {
                             type: 'scattergeo',
                             mode: 'markers',
@@ -56,15 +59,17 @@ const ChoroplethMap = ({ lat, lon, shouldFocus }) => {
                             customdata: hoverTexts,
                         };
 
+                        // Update the data state with the two plotly layers
                         setData([blocksPlot, scatterPlot]);
 
+                        // Define the default map layout
                         setLayout({
                             geo: {
                                 scope: 'usa',
                                 showcoastlines: true,
                                 projection: {
                                     type: 'albers usa',
-                                    scale: 1,  // Increase this to zoom in
+                                    scale: 1,  // Default scale
                                 },
                             },
                         });
@@ -76,6 +81,8 @@ const ChoroplethMap = ({ lat, lon, shouldFocus }) => {
             .catch(error => {
                 console.error('Failed to fetch geojson data:', error);
             });
+
+        // If we need to focus on a specific city, adjust the map's center and zoom
         if (shouldFocus && lat && lon) {
             console.log('Inside focus condition');  // Logging
 
@@ -85,7 +92,7 @@ const ChoroplethMap = ({ lat, lon, shouldFocus }) => {
                     showcoastlines: true,
                     projection: {
                         type: 'albers usa',
-                        scale: 8,
+                        scale: 8,  // Adjusted scale for focused view
                         center: { lon, lat }
                     }
                 }
@@ -93,18 +100,18 @@ const ChoroplethMap = ({ lat, lon, shouldFocus }) => {
         }
     }, [lat, lon, shouldFocus]);
 
+    // Handle click events on city markers
     const handlePointClick = (data) => {
         const clickedPointIndex = data.points[0].pointIndex;
         const clickedCityLabel = data.points[0].customdata;
         const clickedLon = data.points[0].lon;
         const clickedLat = data.points[0].lat;
-        console.log(clickedLon)
-        console.log(clickedLat)
+
         // Update the data to show the label for the clicked point
         setData(prevData => {
             const updatedData = [...prevData];
-            updatedData[1].text = Array(updatedData[1].lon.length).fill(''); // Empty labels for all
-            updatedData[1].text[clickedPointIndex] = clickedCityLabel; // Set label only for the clicked point
+            updatedData[1].text = Array(updatedData[1].lon.length).fill(''); // Empty labels for all points
+            updatedData[1].text[clickedPointIndex] = clickedCityLabel; // Set label for the clicked point
             return updatedData;
         });
 
@@ -115,7 +122,7 @@ const ChoroplethMap = ({ lat, lon, shouldFocus }) => {
                 ...prevLayout.geo,
                 projection: {
                     ...prevLayout.geo.projection,
-                    scale: 10,  // Zoom level (adjust as needed)
+                    scale: 10,  // Adjusted scale for clicked view
                     center: { lon: clickedLon, lat: clickedLat }
                 }
             }
