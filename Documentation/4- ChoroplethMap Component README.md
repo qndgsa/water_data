@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `ChoroplethMap` component is a React component designed to display a choropleth map of the USA with city markers. This component relies on the `plotly.js` library to render the map and integrates the data fetched from an external API to represent city locations and water hardness data.
+ChoroplethMap.js, the `ChoroplethMap` component is a React component designed to display a choropleth map of the USA with city markers. This component relies on the `plotly.js` library to render the map and integrates the data fetched from an external API to represent city locations and water hardness data.
 
 ## Props
 

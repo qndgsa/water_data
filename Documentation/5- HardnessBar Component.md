@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `HardnessBar` component provides a visual representation of water hardness using a progress bar. This component uses color-coded segments to represent different ranges of hardness and an arrow to point at the current hardness level.
+HardnessBar.js, the `HardnessBar` component provides a visual representation of water hardness using a progress bar. This component uses color-coded segments to represent different ranges of hardness and an arrow to point at the current hardness level.
 
 ## Components
 

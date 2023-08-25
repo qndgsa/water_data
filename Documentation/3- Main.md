@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `App` component serves as the main entry point of the React application that allows users to check water quality based on a ZIP code. The application fetches the water hardness data and displays the results using a `ChoroplethMap` and a `HardnessBar`.
+App.js file in the sre folder is the `App` component serves as the main entry point of the React application that allows users to check water quality based on a ZIP code. The application fetches the water hardness data and displays the results using a `ChoroplethMap` and a `HardnessBar`.
 
 ## Component Dependencies
 
