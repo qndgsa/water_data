@@ -1,5 +1,6 @@
 ## **Deploying and Setting Up Projects on AWS**
 
+
 ### **1. React on AWS Amplify**
 
 #### **1.1. Setting Up Amplify with GitHub**
